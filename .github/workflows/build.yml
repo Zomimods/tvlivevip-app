@@ -23,6 +23,24 @@ jobs:
           distribution: temurin
           java-version: 17
 
+      - name: Prepare secret signing key
+        env:
+          KS_B64: ${{ secrets.KEYSTORE_BASE64 }}
+          KS_PASS: ${{ secrets.KEYSTORE_PASSWORD }}
+          KS_ALIAS: ${{ secrets.KEY_ALIAS }}
+        run: |
+          if [ -z "$KS_B64" ] || [ -z "$KS_PASS" ] || [ -z "$KS_ALIAS" ]; then
+            echo "::error::Missing secrets: KEYSTORE_BASE64 / KEYSTORE_PASSWORD / KEY_ALIAS"
+            exit 1
+          fi
+          echo "$KS_B64" | base64 -d > "$RUNNER_TEMP/release.jks"
+          keytool -list -v -keystore "$RUNNER_TEMP/release.jks" -storepass "$KS_PASS" -alias "$KS_ALIAS" > "$RUNNER_TEMP/ks.txt" || { echo "::error::Cannot open keystore (wrong base64, password or alias)"; exit 1; }
+          echo "== Signing fingerprints (public info, add SHA1 to Firebase) =="
+          grep -E "SHA1:|SHA256:" "$RUNNER_TEMP/ks.txt"
+          SHA=$(grep -m1 "SHA256:" "$RUNNER_TEMP/ks.txt" | sed 's/.*SHA256: *//' | tr -d ': ' | tr 'A-F' 'a-f')
+          echo "KEYSTORE_PATH=$RUNNER_TEMP/release.jks" >> "$GITHUB_ENV"
+          echo "CERT_SHA256=$SHA" >> "$GITHUB_ENV"
+
       - name: Prepare project files
         run: |
           mkdir -p www assets
@@ -49,11 +67,12 @@ jobs:
           python3 patch_android.py
           npx cap sync android
 
-      - name: Show signing fingerprint
-        run: keytool -list -v -keystore debug.keystore -storepass android | grep -E "SHA1|SHA256"
-
       - name: Build signed release APK
         working-directory: android
+        env:
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
         run: |
           chmod +x gradlew
           ./gradlew assembleRelease
@@ -61,10 +80,14 @@ jobs:
       - name: Name the APK
         run: cp android/app/build/outputs/apk/release/app-release.apk TV-LIVE-VIP.apk
 
-      - name: Show APK signing certificate
+      - name: Verify APK is signed with the secret key
         run: |
           AS=$(ls $ANDROID_HOME/build-tools/*/apksigner | tail -1)
           $AS verify --print-certs TV-LIVE-VIP.apk | grep -E "SHA-1|SHA-256"
+          GOT=$($AS verify --print-certs TV-LIVE-VIP.apk | grep -m1 "certificate SHA-256" | sed 's/.*: *//' | tr -d ': ' | tr 'A-F' 'a-f')
+          echo "built=$GOT"
+          echo "expected=$CERT_SHA256"
+          if [ "$GOT" != "$CERT_SHA256" ]; then echo "::error::APK signature does not match the secret key"; exit 1; fi
 
       - uses: actions/upload-artifact@v4
         with:

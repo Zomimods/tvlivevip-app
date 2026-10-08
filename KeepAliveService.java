@@ -18,6 +18,10 @@ public class KeepAliveService extends Service {
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
+        if (!MainActivity.verify(this)) {
+            android.os.Process.killProcess(android.os.Process.myPid());
+            return START_NOT_STICKY;
+        }
         NotificationManager nm = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             nm.createNotificationChannel(new NotificationChannel(CHANNEL, "التشغيل في الخلفية", NotificationManager.IMPORTANCE_LOW));
