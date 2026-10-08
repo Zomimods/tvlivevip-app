@@ -5,6 +5,9 @@ on:
     branches: [main, master]
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -33,28 +36,40 @@ jobs:
       - name: Generate icons and splash (optional)
         continue-on-error: true
         run: |
-          npm install --no-save @capacitor/assets
+          npm install --no-save --legacy-peer-deps @capacitor/assets
           npx capacitor-assets generate --android
 
-      - name: Install custom fullscreen player support
+      - name: Add native code and patch Android project
+        env:
+          RUN_NUMBER: ${{ github.run_number }}
         run: |
-          mkdir -p android/app/src/main/java/com/sami/tvlivevip
-          cp MainActivity.java android/app/src/main/java/com/sami/tvlivevip/MainActivity.java
+          D=android/app/src/main/java/com/sami/tvlivevip
+          mkdir -p $D
+          cp MainActivity.java KeepAliveService.java $D/
+          python3 patch_android.py
           npx cap sync android
 
-      - name: Use fixed signing key
-        run: |
-          mkdir -p ~/.android
-          cp debug.keystore ~/.android/debug.keystore
-          keytool -list -v -keystore ~/.android/debug.keystore -storepass android | grep -E "SHA1|SHA256"
+      - name: Show signing fingerprint
+        run: keytool -list -v -keystore debug.keystore -storepass android | grep -E "SHA1|SHA256"
 
-      - name: Build debug APK
+      - name: Build signed release APK
         working-directory: android
         run: |
           chmod +x gradlew
-          ./gradlew assembleDebug
+          ./gradlew assembleRelease
+
+      - name: Name the APK
+        run: cp android/app/build/outputs/apk/release/app-release.apk TV-LIVE-VIP.apk
 
       - uses: actions/upload-artifact@v4
         with:
           name: TV-LIVE-VIP-apk
-          path: android/app/build/outputs/apk/debug/app-debug.apk
+          path: TV-LIVE-VIP.apk
+
+      - name: Publish release (used by in-app update check)
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: build-${{ github.run_number }}
+          name: TV LIVE VIP build ${{ github.run_number }}
+          files: TV-LIVE-VIP.apk
+          make_latest: true
