@@ -35,7 +35,9 @@
         "email"
       ],
       "serverClientId": "770359396613-hnj1mu8crtgu7r8f259a3pumgnt4q8m3.apps.googleusercontent.com",
-      "forceCodeForRefreshToken": false
+      "forceCodeForRefreshToken": false,
+      "clientId": "770359396613-hnj1mu8crtgu7r8f259a3pumgnt4q8m3.apps.googleusercontent.com",
+      "androidClientId": "770359396613-hnj1mu8crtgu7r8f259a3pumgnt4q8m3.apps.googleusercontent.com"
     }
   }
 }

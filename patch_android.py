@@ -36,3 +36,11 @@ if 'signingConfigs' not in g:
     g = re.sub(r'(buildTypes\s*\{\s*release\s*\{)', r'\1\n            signingConfig signingConfigs.release', g, 1)
 open(gp, 'w', encoding='utf-8').write(g)
 print('patched manifest and gradle, build', n)
+
+# --- Google sign-in: the plugin reads the web client id from this string resource ---
+sp = 'android/app/src/main/res/values/strings.xml'
+st = open(sp, encoding='utf-8').read()
+if 'server_client_id' not in st:
+    st = st.replace('</resources>', '    <string name="server_client_id">770359396613-hnj1mu8crtgu7r8f259a3pumgnt4q8m3.apps.googleusercontent.com</string>\n</resources>')
+    open(sp, 'w', encoding='utf-8').write(st)
+print('added server_client_id')
