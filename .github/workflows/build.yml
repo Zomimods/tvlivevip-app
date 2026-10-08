@@ -61,6 +61,11 @@ jobs:
       - name: Name the APK
         run: cp android/app/build/outputs/apk/release/app-release.apk TV-LIVE-VIP.apk
 
+      - name: Show APK signing certificate
+        run: |
+          AS=$(ls $ANDROID_HOME/build-tools/*/apksigner | tail -1)
+          $AS verify --print-certs TV-LIVE-VIP.apk | grep -E "SHA-1|SHA-256"
+
       - uses: actions/upload-artifact@v4
         with:
           name: TV-LIVE-VIP-apk
