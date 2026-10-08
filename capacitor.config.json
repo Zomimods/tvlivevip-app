@@ -1,0 +1,33 @@
+{
+  "appId": "com.sami.tvlivevip",
+  "appName": "TV LIVE VIP",
+  "webDir": "www",
+  "backgroundColor": "#071018",
+  "server": {
+    "url": "https://tvlivevip.blogspot.com/",
+    "cleartext": true,
+    "androidScheme": "https",
+    "errorPath": "offline.html",
+    "allowNavigation": [
+      "tvlivevip.blogspot.com",
+      "*.blogspot.com",
+      "*.blogger.com",
+      "*.google.com",
+      "*.googleapis.com",
+      "*.gstatic.com",
+      "*.firebaseapp.com"
+    ]
+  },
+  "android": {
+    "allowMixedContent": true,
+    "backgroundColor": "#071018"
+  },
+  "plugins": {
+    "SplashScreen": {
+      "launchShowDuration": 1800,
+      "launchAutoHide": true,
+      "backgroundColor": "#071018",
+      "showSpinner": false
+    }
+  }
+}
